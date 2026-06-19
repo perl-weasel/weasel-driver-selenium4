@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+docker run --rm -p 4444:4444 --shm-size=2g selenium/standalone-chrome:4
+

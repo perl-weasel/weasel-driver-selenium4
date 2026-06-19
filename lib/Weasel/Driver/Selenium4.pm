@@ -71,7 +71,7 @@ Internal. Holds the reference to the C<Selenium::Client> instance.
 
 has '_driver' => (
     is  => 'rw',
-    isa => 'Selenium::Client',
+    isa => 'Selenium::Session',
 );
 
 =item wait_timeout
@@ -146,19 +146,20 @@ sub start {
     my $self = shift;
 
     do {
-        if (defined $self->{caps}{$_}) {
+        if (defined $self->{caps}->{$_}) {
             my $capability_name = $_;
             if ($self->{caps}{$capability_name} =~
                   /\$\{             # a dollar sign and opening brace
                    ([^\}]+)         # any character not a closing brace
                    \}/x             # a closing brace
                 ) {
-                $self->{caps}{$capability_name} = $ENV{$1};
+                $self->{caps}->{$capability_name} = $ENV{$1};
             }
         }
     } for (qw/browser_name remote_server_addr version platform/);
 
     my $driver = Selenium::Client->new(%{ $self->caps });
+    ( undef, $driver ) = $driver->NewSession();
 
     $self->_driver($driver);
     $self->set_wait_timeout($self->wait_timeout)
@@ -194,7 +195,7 @@ sub find_all {
     my $using = $scheme // 'xpath';
 
     if ($parent_id eq '/html') {
-        @rv = $driver->find_elements($locator, $using);
+        @rv = $driver->FindElements(using => $using, value => $locator);
     }
     else {
         my $parent = $self->_resolve_id($parent_id);
@@ -210,7 +211,7 @@ sub find_all {
 sub get {
     my ($self, $url) = @_;
 
-    return $self->_driver->get($url);
+    return $self->_driver->NavigateTo(url => $url);
 }
 
 =item wait_for
@@ -288,7 +289,7 @@ sub dblclick {
 
 sub execute_script {
     my $self = shift;
-    return $self->_driver->execute_script(@_);
+    return $self->_driver->ExecuteScript(@_);
 }
 
 =item get_attribute($id, $att_name)
@@ -506,7 +507,7 @@ sub _resolve_id {
 sub _scroll {
     my ($self, $id) = @_;
 
-    $self->_driver->execute_script(
+    $self->_driver->ExecuteScript(
         'arguments[0].scrollIntoView({block: "center", inline: "center", behavior: "smooth"});',
         $id
     );
