@@ -55,6 +55,9 @@ use Time::HiRes qw/ time sleep /;
 use Weasel::DriverRole;
 use Carp::Clan qw(^Weasel::);
 use English qw(-no_match_vars);
+use Scalar::Util qw( reftype blessed );
+
+use Carp::Always;
 
 use Moose;
 with 'Weasel::DriverRole';
@@ -71,7 +74,7 @@ Internal. Holds the reference to the C<Selenium::Client> instance.
 
 has '_driver' => (
     is  => 'rw',
-    isa => 'Selenium::Session',
+    isa => 'Maybe[Selenium::Session]',
 );
 
 =item wait_timeout
@@ -175,15 +178,27 @@ sub start {
 
 sub stop {
     my $self = shift;
-    my $driver = $self->_driver;
 
-    $driver->quit if defined $driver;
+    $self->_driver( undef );
     return $self->started(0);
 }
 
 =item find_all
 
 =cut
+
+my %scheme_map = (
+    class             => 'class name',
+    class_name        => 'class name',
+    css               => 'css selector',
+    id                => 'id',
+    link              => 'link text',
+    link_text         => 'link text',
+    name              => 'name',
+    partial_link_text => 'partial link text',
+    tag_name          => 'tag name',
+    xpath             => 'xpath',
+);
 
 sub find_all {
     my ($self, $parent_id, $locator, $scheme) = @_;
@@ -195,7 +210,7 @@ sub find_all {
     my $using = $scheme // 'xpath';
 
     if ($parent_id eq '/html') {
-        @rv = $driver->FindElements(using => $using, value => $locator);
+        @rv = $driver->FindElements(using => $scheme_map{$using}, value => $locator);
     }
     else {
         my $parent = $self->_resolve_id($parent_id);
@@ -266,10 +281,23 @@ sub click {
     my ($self, $element_id) = @_;
 
     if (defined $element_id) {
-        return $self->_scroll($self->_resolve_id($element_id))->click;
+        return $self->_scroll($self->_resolve_id($element_id))->ElementClick;
     }
     else {
-        return $self->_driver->actions->click->perform;
+        $self->_driver->PerformActions(
+            actions => [
+                {
+                    type => 'pointer',
+                    id   => 'mouse',
+                    parameters => { pointerType => 'mouse' },
+                    actions => [
+                        { type => 'pointerDown', button => 0 },
+                        { type => 'pointerUp', button => 0 },
+                        { type => 'pointerDown', button => 0 },
+                        { type => 'pointerUp', button => 0 } ]
+                }
+            ]);
+        return $self->_driver->ReleaseActions;
     }
 }
 
@@ -287,9 +315,52 @@ sub dblclick {
 
 =cut
 
+sub _walk_args {
+    my (@args) = @_;
+    my @rv;
+
+    for my $arg (@args) {
+        if (not defined $arg) {
+            push @rv, $arg;
+            next;
+        }
+
+        if (not ref $arg) {
+            push @rv, $arg;
+            next;
+        }
+
+        if (blessed $arg) {
+            if ($arg->isa('Selenium::Element')) {
+                push @rv, {
+                    'element-6066-11e4-a52e-4f735466cecf' => $arg->{elementid}
+                };
+                next;
+            }
+            push @rv, $arg; # likely causes a failure later
+            next;
+        }
+
+        if (reftype $arg eq 'ARRAY') {
+            push @rv, [ _walk_args( $arg->@* ) ];
+            next;
+        }
+
+        if (reftype $arg eq 'HASH') {
+            push @rv, { _walk_args( $arg->%* ) };
+            next;
+        }
+
+        push @rv, $arg;
+    }
+
+    return @rv;
+}
+
 sub execute_script {
     my $self = shift;
-    return $self->_driver->ExecuteScript(@_);
+    my ($script, @args) = @_;
+    return $self->_driver->ExecuteScript(script => $script, args => _walk_args( \@args ));
 }
 
 =item get_attribute($id, $att_name)
@@ -302,11 +373,11 @@ sub get_attribute {
     my $element = $self->_resolve_id($id);
     my $value;
 
-    eval { $value = $element->get_property($att); };
+    eval { $value = $element->GetElementProperty(name => $att); };
     if (ref $value) {
         $value = undef;
     }
-    $value //= $element->get_attribute($att);
+    $value //= $element->GetElementAttribute(name => $att);
     return $value;
 }
 
@@ -317,7 +388,7 @@ sub get_attribute {
 sub get_page_source {
     my ($self,$fh) = @_;
 
-    print {$fh} $self->_driver->get_page_source()
+    print {$fh} $self->_driver->GetPageSource()
        or croak "error saving page source: $ERRNO";
     return;
 }
@@ -329,7 +400,7 @@ sub get_page_source {
 sub get_text {
     my ($self, $id) = @_;
 
-    return $self->_resolve_id($id)->get_text;
+    return $self->_resolve_id($id)->GetElementText;
 }
 
 =item is_displayed($id)
@@ -365,12 +436,7 @@ sub is_displayed {
 sub set_attribute {
     my ($self, $id, $att, $value) = @_;
 
-    return $self->execute_script(
-        'arguments[0].setAttribute(arguments[1], arguments[2]);',
-        $self->_resolve_id($id),
-        $att,
-        $value,
-    );
+    die "Deprecated. Not implemented for W3C WebDriver";
 }
 
 =item get_selected($id)
@@ -380,7 +446,7 @@ sub set_attribute {
 sub get_selected {
     my ($self, $id) = @_;
 
-    return $self->_resolve_id($id)->is_selected;
+    return $self->_resolve_id($id)->IsElementSelected;
 }
 
 =item set_selected($id, $value)
@@ -408,7 +474,7 @@ sub set_selected {
 sub screenshot {
     my ($self, $fh) = @_;
 
-    my $image = $self->_driver->screenshot;
+    my $image = $self->_driver->TakeScreenshot;
     my $decoded = eval { MIME::Base64::decode($image) };
 
     print {$fh} ($decoded || $image)
@@ -423,7 +489,7 @@ sub screenshot {
 sub send_keys {
     my ($self, $element_id, @keys) = @_;
 
-    return $self->_resolve_id($element_id)->send_keys(@keys);
+    return $self->_resolve_id($element_id)->ElementSendKeys( text => join('', @keys) );
 }
 
 =item tag_name($elem)
@@ -433,7 +499,7 @@ sub send_keys {
 sub tag_name {
     my ($self, $element_id) = @_;
 
-    return $self->_resolve_id($element_id)->get_tag_name;
+    return $self->_resolve_id($element_id)->GetElementTagName;
 }
 
 =back
@@ -508,8 +574,8 @@ sub _scroll {
     my ($self, $id) = @_;
 
     $self->_driver->ExecuteScript(
-        'arguments[0].scrollIntoView({block: "center", inline: "center", behavior: "smooth"});',
-        $id
+        script => 'arguments[0].scrollIntoView({block: "center", inline: "center", behavior: "smooth"});',
+        args => [ { 'element-6066-11e4-a52e-4f735466cecf' => $id->{elementid} } ]
     );
     return $id;
 }
