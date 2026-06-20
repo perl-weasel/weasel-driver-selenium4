@@ -109,7 +109,7 @@ has 'window_size' => (
 
 =item caps
 
-Capabilities to be passed to the Selenium::Client constructor
+Arguments to be passed to the L<Selenium::Client> constructor
 when C<start> is being called. Changes won't take effect until the
 session is stopped and started or restarted.
 
