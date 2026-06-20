@@ -18,6 +18,7 @@ nytprof.out
 *.o
 *.bs
 /_eumm/
+/Weasel-Driver-Selenium4-*
 
 # plx
 /devel/
