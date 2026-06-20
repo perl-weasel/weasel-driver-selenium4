@@ -13,10 +13,14 @@ my $weasel = Weasel->new(
     default_session => 'default',
     sessions => {
         default => Weasel::Session->new(
+            poll_delay => 0.1,
+            retry_timeout => 120,
             driver => Weasel::Driver::Selenium4->new(
+                wait_timeout => '3000',
+                window_size => '1024x1280',
                 caps => {
-                    remote_server_addr => 'localhost',
-                    port => 4444,
+                    host => 'localhost',
+                    port => '4444',
                     driver => 'Auto',
                     browser => 'chrome',
                     extra_capabilities => {
@@ -66,7 +70,7 @@ my $displayed = lives {
 };
 ok( $displayed, 'Successfully requested "is_displayed"' );
 
-my $displayed = lives {
+$displayed = lives {
     $body->get_attribute( 'selected' );
 };
 ok( $displayed, 'Successfully requested "get_selected"' );
