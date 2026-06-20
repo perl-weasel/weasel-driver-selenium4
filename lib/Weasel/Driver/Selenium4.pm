@@ -214,7 +214,7 @@ sub find_all {
     }
     else {
         my $parent = $self->_resolve_id($parent_id);
-        @rv = $parent->find_elements($locator, $using);
+        @rv = $parent->FindElementsFromElement(using => $scheme_map{$using}, value => $locator);
     }
     return wantarray ? @rv : \@rv;
 }
@@ -270,7 +270,7 @@ sub wait_for {
 sub clear {
     my ($self, $id) = @_;
 
-    return $self->_resolve_id($id)->clear;
+    return $self->_resolve_id($id)->ElementClear;
 }
 
 =item click
