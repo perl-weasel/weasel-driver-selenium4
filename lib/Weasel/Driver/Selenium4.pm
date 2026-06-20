@@ -57,8 +57,6 @@ use Carp::Clan qw(^Weasel::);
 use English qw(-no_match_vars);
 use Scalar::Util qw( reftype blessed );
 
-use Carp::Always;
-
 use Moose;
 with 'Weasel::DriverRole';
 
@@ -358,8 +356,7 @@ sub _walk_args {
 }
 
 sub execute_script {
-    my $self = shift;
-    my ($script, @args) = @_;
+    my ($self, $script, @args) = @_;
     return $self->_driver->ExecuteScript(script => $script, args => _walk_args( \@args ));
 }
 
@@ -436,7 +433,7 @@ sub is_displayed {
 sub set_attribute {
     my ($self, $id, $att, $value) = @_;
 
-    croak "Deprecated (set_attribute). Not implemented for W3C WebDriver";
+    croak 'Deprecated (set_attribute). Not implemented for W3C WebDriver';
 }
 
 =item get_selected($id)

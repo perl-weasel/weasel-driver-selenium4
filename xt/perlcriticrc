@@ -18,6 +18,7 @@ exclude   = 'OTRS::'
 allow_leading_tabs = 0
 
 [-CodeLayout::RequireTidyCode]
+[-CodeLayout::ProhibitParensWithBuiltins]
 
 [ControlStructures::ProhibitPostfixControls]
 allow = for if until while
@@ -29,6 +30,8 @@ allow = for if until while
 
 [Documentation::RequirePodSections]
 lib_sections = NAME | VERSION | SYNOPSIS | DESCRIPTION | DEPENDENCIES | SUBROUTINES/METHODS | AUTHOR | BUGS AND LIMITATIONS | SOURCE | LICENSE AND COPYRIGHT
+
+[-ErrorHandling::RequireCheckingReturnValueOfEval]
 
 [Modules::ProhibitEvilModules]
 modules = Carp::Always Data::Dumper Data::Printer
@@ -54,6 +57,8 @@ severity = 1
 
 [TestingAndDebugging::RequireUseWarnings]
 severity = 1
+
+[-ValuesAndExpressions::ProhibitEmptyQuotes]
 
 #--------------------------------------------------------------
 # For all other Policies, I accept the default severity,
