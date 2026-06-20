@@ -1,0 +1,27 @@
+{
+    "extends": [
+        "config:recommended"
+    ],
+    "baseBranches": [
+        "main"
+    ],
+    "cpanfile": {
+        "enabled": false
+    },
+    "minimumReleaseAge": "3 days",
+    "packageRules": [
+        {
+            "matchManagers": [
+                "github-actions"
+            ]
+        }
+    ],
+    "timezone": "Etc/Greenwich",
+    "schedule": [
+        "after 11pm on friday",
+        "before 7am on saturday"
+    ],
+    "vulnerabilityAlerts": {
+        "schedule": null
+    }
+}
