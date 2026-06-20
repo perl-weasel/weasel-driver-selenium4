@@ -436,7 +436,7 @@ sub is_displayed {
 sub set_attribute {
     my ($self, $id, $att, $value) = @_;
 
-    die "Deprecated. Not implemented for W3C WebDriver";
+    croak "Deprecated (set_attribute). Not implemented for W3C WebDriver";
 }
 
 =item get_selected($id)
