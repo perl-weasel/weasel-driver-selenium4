@@ -524,9 +524,7 @@ sub set_wait_timeout {
     my $driver = $self->_driver;
 
     if (defined $driver) {
-        eval { $driver->set_timeouts(implicit => $value); 1 }
-            or eval { $driver->timeouts->implicit_wait($value); 1 }
-            or eval { $driver->set_implicit_wait_timeout($value); 1 };
+        $driver->SetTimeouts(implicit => int($value));
     }
     return $self->_set_wait_timeout($value);
 }
@@ -545,8 +543,7 @@ sub set_window_size {
 
     if (defined $driver) {
         my ($height, $width) = split /x/, $value;
-        eval { $driver->set_window_rect(width => $width, height => $height); 1 }
-            or eval { $driver->set_window_size($width, $height); 1 };
+        $driver->SetWindowRect(width => int($width), height => int($height));
     }
     return $self->_set_window_size($value);
 }
