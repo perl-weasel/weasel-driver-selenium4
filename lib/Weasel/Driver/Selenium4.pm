@@ -357,7 +357,10 @@ sub _walk_args {
 
 sub execute_script {
     my ($self, $script, @args) = @_;
-    return $self->_driver->ExecuteScript(script => $script, args => _walk_args( \@args ));
+    return $self->_driver->ExecuteScript(
+        script => $script,
+        # work around missing mapping of elements in @args in Selenium::Client
+        args => _walk_args( \@args ));
 }
 
 =item get_attribute($id, $att_name)
